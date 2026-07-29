@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Areosence | Breathe Smart. Live Better.</title>
+  <meta name="description" content="Areosence - Smart Air Quality & Pollution Detection System using ESP32, MQ135 gas sensor, DHT11 climate sensor, LCD 16x2, and live telemetry analytics.">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- =========================================================================
+       AUTHENTICATION LOCK SCREEN OVERLAY
+       ========================================================================= -->
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-card">
+      <div class="auth-header">
+        <img src="assets/images/logo.png" alt="Areosence Logo" class="auth-logo-img">
+        <h2 class="auth-title">Areosence</h2>
+        <p class="auth-motto">BREATHE SMART. LIVE BETTER.</p>
+      </div>
+
+      <!-- Auth Tab Navigation -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn active" id="tabSignIn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+        <button type="button" class="auth-tab-btn" id="tabRegister"><i class="fa-solid fa-user-plus"></i> Register</button>
+      </div>
+
+      <!-- Alert Banners -->
+      <div class="auth-error" id="authError">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="authErrorText">Invalid credentials provided.</span>
+      </div>
+      <div class="auth-success" id="authSuccess">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="authSuccessText">Account created successfully!</span>
+      </div>
+
+      <!-- Sign In Form -->
+      <form class="auth-form" id="authForm">
+        <div class="form-group">
+          <label for="emailInput">Student ID / Email / Username</label>
+          <div class="input-wrapper">
+            <input type="text" id="emailInput" class="input-field" placeholder="e.g. IT26101389 or student@sliit.lk" autocomplete="username">
+            <i class="fa-regular fa-user input-icon"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="passInput">Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="passInput" class="input-field" placeholder="••••••••" autocomplete="current-password">
+            <i class="fa-solid fa-lock input-icon"></i>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In to System
+        </button>
+
+        <div class="auth-switch-prompt">
+          Don't have an account? <button type="button" id="toRegisterLink" class="auth-switch-link">Register here</button>
+        </div>
+
+        <div class="demo-accounts">
+          <div class="demo-title">Quick Demo Login (Select One)</div>
+          <div class="demo-pills">
+            <button type="button" class="demo-pill" data-role="student" id="demoStudentBtn"><i class="fa-solid fa-user-graduate"></i> Student</button>
+            <button type="button" class="demo-pill" data-role="professor" id="demoProfBtn"><i class="fa-solid fa-chalkboard-user"></i> Professor</button>
+            <button type="button" class="demo-pill" data-role="guest" id="demoGuestBtn"><i class="fa-solid fa-user-astronaut"></i> Guest</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Register Form -->
+      <form class="auth-form" id="regForm" style="display: none;">
+        <div class="form-group">
+          <label for="regNameInput">Full Name</label>
+          <div class="input-wrapper">
+            <input type="text" id="regNameInput" class="input-field" placeholder="e.g. John Doe" autocomplete="name" required>
+            <i class="fa-regular fa-id-card input-icon"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="regEmailInput">Student ID / Email</label>
+          <div class="input-wrapper">
+            <input type="text" id="regEmailInput" class="input-field" placeholder="e.g. IT26109999 or john@sliit.lk" autocomplete="username" required>
+            <i class="fa-regular fa-envelope input-icon"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="regPassInput">Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="regPassInput" class="input-field" placeholder="••••••••" autocomplete="new-password" required>
+            <i class="fa-solid fa-lock input-icon"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="regPassConfirmInput">Confirm Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="regPassConfirmInput" class="input-field" placeholder="••••••••" autocomplete="new-password" required>
+            <i class="fa-solid fa-shield-halved input-icon"></i>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i class="fa-solid fa-user-plus"></i> Create Account & Access System
+        </button>
+
+        <div class="auth-switch-prompt">
+          Already have an account? <button type="button" id="toSignInLink" class="auth-switch-link">Sign In</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MAIN APPLICATION LAYOUT
+       ========================================================================= -->
+  <div class="app-container locked" id="appContainer">
+
+    <!-- Header Navigation -->
+    <header class="app-header">
+      <div class="brand-section">
+        <img src="assets/images/logo.png" alt="Areosence Logo" class="brand-logo-img">
+        <div>
+          <h1 class="brand-title">Areosence</h1>
+          <div class="brand-motto">BREATHE SMART. LIVE BETTER.</div>
+        </div>
+      </div>
+
+      <!-- Page Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-page="dashboard">
+          <i class="fa-solid fa-gauge-high"></i> Dashboard
+        </button>
+        <button class="nav-tab" data-page="technology">
+          <i class="fa-solid fa-microchip"></i> Technology
+        </button>
+        <button class="nav-tab" data-page="team">
+          <i class="fa-solid fa-users"></i> Team
+        </button>
+        <button class="nav-tab" data-page="contact">
+          <i class="fa-solid fa-envelope"></i> Contact
+        </button>
+        <button class="nav-tab" data-page="about">
+          <i class="fa-solid fa-circle-info"></i> About
+        </button>
+      </nav>
+
+      <!-- Status & Profile -->
+      <div class="header-actions">
+        <div class="status-pill">
+          <div class="pulse-dot"></div>
+          <span>ESP32 Live</span>
+        </div>
+
+        <div class="user-profile-badge">
+          <div class="avatar-mini" id="userAvatarMini">A</div>
+          <span class="user-name-text" id="userNameText">Alex (Lead)</span>
+          <button class="btn-logout" id="logoutBtn" title="Sign Out">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Views Container -->
+    <main class="main-content">
+
+      <!-- =====================================================================
+           PAGE 1: DASHBOARD
+           ===================================================================== -->
+      <section class="page-view active" id="page-dashboard">
+        
+        <!-- Hazardous Alert Banner -->
+        <div class="hazard-banner" id="hazardAlertBanner" style="display: none; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem; color: #ef4444;"></i>
+            <div>
+              <strong style="color: #fff; font-size: 1.05rem;">HAZARDOUS AIR QUALITY DETECTED!</strong>
+              <div style="font-size: 0.85rem;">MQ135 Gas sensor readings exceed safe exposure limits (AQI > 200). Activate ventilation!</div>
+            </div>
+          </div>
+          <span class="badge-status" style="background: #ef4444; color: #fff;">CRITICAL ALARM</span>
+        </div>
+
+        <div class="page-header">
+          <h2 class="page-title"><i class="fa-solid fa-chart-line" style="color: var(--cyan-primary);"></i> Real-Time Monitoring Dashboard</h2>
+          <p class="page-subtitle">Live environmental telemetry stream transmitted via ESP32 micro-controller node.</p>
+        </div>
+
+        <!-- Dashboard Grid (Meter + Chart) -->
+        <div class="dashboard-grid">
+          
+          <!-- AQI Meter Gauge Card -->
+          <div class="glass-card gauge-card">
+            <div class="card-title-bar">
+              <span class="card-title"><i class="fa-solid fa-tachograph-digital" style="color: var(--cyan-primary);"></i> Air Quality Meter</span>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">MQ135 Calibrated</small>
+            </div>
+
+            <div class="gauge-container">
+              <canvas id="aqiGaugeCanvas"></canvas>
+            </div>
+
+            <div class="gauge-status-badge status-good" id="gaugeStatusBadge">
+              <i class="fa-solid fa-circle-check"></i> GOOD
+            </div>
+            <!-- 4-Tier AQI Scale Legend -->
+            <div class="aqi-legend-grid">
+              <div class="legend-item">
+                <div class="legend-dot" style="background: #10b981;"></div>
+                <span>GOOD</span>
+                <small>0 &ndash; 50</small>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background: #f59e0b;"></div>
+                <span>MODERATE</span>
+                <small>51 &ndash; 100</small>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background: #f97316;"></div>
+                <span>POOR</span>
+                <small>101 &ndash; 200</small>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background: #ef4444;"></div>
+                <span>HAZARDOUS</span>
+                <small>201 &ndash; 500</small>
+              </div>
+            </div>          </div>
+
+          <!-- Real-Time Stream Chart -->
+          <div class="glass-card chart-card">
+            <div class="chart-header">
+              <span class="card-title"><i class="fa-solid fa-wave-square" style="color: var(--purple-accent);"></i> Live Sensor Stream</span>
+              
+              <div class="multi-sensor-badges">
+                <span class="sensor-pill-badge aqi"><span class="sensor-pill-dot"></span> AQI Index</span>
+                <span class="sensor-pill-badge mq135"><span class="sensor-pill-dot"></span> MQ135 Gas (PPM)</span>
+                <span class="sensor-pill-badge temp"><span class="sensor-pill-dot"></span> Temp (°C)</span>
+                <span class="sensor-pill-badge humidity"><span class="sensor-pill-dot"></span> Humidity (%)</span>
+              </div>
+            </div>
+
+            <div class="chart-wrapper">
+              <canvas id="liveChartCanvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensor Status Cards Grid -->
+        <div class="sensor-cards-grid">
+          
+          <!-- ESP32 Card -->
+          <div class="glass-card sensor-card">
+            <div class="sensor-head">
+              <div class="sensor-chip">
+                <div class="sensor-icon icon-esp32"><i class="fa-solid fa-microchip"></i></div>
+                <div>
+                  <div class="sensor-name">ESP32 Node</div>
+                  <div class="sensor-model">Dual-Core Tensilica LX6</div>
+                </div>
+              </div>
+              <span class="badge-status" style="background: rgba(16,185,129,0.15); color: #10b981;">ONLINE</span>
+            </div>
+            
+            <div class="sensor-value-big">
+              <span id="readoutUptime">3h 56m</span>
+              <small>Uptime</small>
+            </div>
+
+            <div class="sensor-submetrics">
+              <div class="submetric-item">
+                <span class="submetric-label">Wi-Fi RSSI</span>
+                <span class="submetric-value">-58 dBm</span>
+              </div>
+              <div class="submetric-item">
+                <span class="submetric-label">Node IP</span>
+                <span class="submetric-value">192.168.1.145</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- MQ135 Card -->
+          <div class="glass-card sensor-card">
+            <div class="sensor-head">
+              <div class="sensor-chip">
+                <div class="sensor-icon icon-mq135"><i class="fa-solid fa-smog"></i></div>
+                <div>
+                  <div class="sensor-name">MQ135 Sensor</div>
+                  <div class="sensor-model">Gas &amp; Air Quality</div>
+                </div>
+              </div>
+              <span class="badge-status" style="background: rgba(6,182,212,0.15); color: #06b6d4;">ACTIVE</span>
+            </div>
+
+            <div class="sensor-value-big">
+              <span id="readoutPpm">210</span>
+              <small>PPM</small>
+            </div>
+
+            <div class="sensor-submetrics">
+              <div class="submetric-item">
+                <span class="submetric-label">Gases Tracked</span>
+                <span class="submetric-value">CO2, NH3, Smoke</span>
+              </div>
+              <div class="submetric-item">
+                <span class="submetric-label">Sensor AQI</span>
+                <span class="submetric-value" id="readoutAqi">42</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DHT11 Card -->
+          <div class="glass-card sensor-card">
+            <div class="sensor-head">
+              <div class="sensor-chip">
+                <div class="sensor-icon icon-dht11"><i class="fa-solid fa-temperature-half"></i></div>
+                <div>
+                  <div class="sensor-name">DHT11 Sensor</div>
+                  <div class="sensor-model">Temp &amp; Humidity</div>
+                </div>
+              </div>
+              <span class="badge-status" style="background: rgba(16,185,129,0.15); color: #10b981;">CALIBRATED</span>
+            </div>
+
+            <div class="sensor-value-big">
+              <span id="readoutTemp">24.5</span>
+              <small>°C</small>
+            </div>
+
+            <div class="sensor-submetrics">
+              <div class="submetric-item">
+                <span class="submetric-label">Relative Humidity</span>
+                <span class="submetric-value"><span id="readoutHumidity">55</span>%</span>
+              </div>
+              <div class="submetric-item">
+                <span class="submetric-label">Heat Index</span>
+                <span class="submetric-value">25.1 °C</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Simulation Controller Override -->
+        <div class="sim-control-panel">
+          <div class="sim-info">
+            <i class="fa-solid fa-sliders sim-icon"></i>
+            <div>
+              <div class="sim-title">Live Sensor Interactive Simulator</div>
+              <div class="sim-subtitle">Force test different air pollution levels to inspect real-time gauge &amp; chart dynamics.</div>
+            </div>
+          </div>
+
+          <div class="sim-buttons" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <button class="btn-sim btn-sim-good active" data-sim="good"><i class="fa-solid fa-leaf"></i> Good (0–50)</button>
+            <button class="btn-sim btn-sim-mod" data-sim="mod"><i class="fa-solid fa-sun"></i> Moderate (51–100)</button>
+            <button class="btn-sim" style="border-color: #f97316; color: #f97316;" data-sim="poor"><i class="fa-solid fa-cloud"></i> Poor (101–200)</button>
+            <button class="btn-sim btn-sim-haz" data-sim="haz"><i class="fa-solid fa-biohazard"></i> Hazardous (201–500)</button>
+          </div>
+        </div>
+
+        <!-- Alert Log Table Card -->
+        <div class="glass-card table-card">
+          <div class="table-header">
+            <span class="card-title"><i class="fa-solid fa-list-check" style="color: var(--cyan-primary);"></i> Telemetry Alert History Log</span>
+            <button class="btn-chart-toggle" id="btnExportLogs"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>AQI Rating</th>
+                  <th>Gas PPM</th>
+                  <th>Temperature</th>
+                  <th>Air Quality Status</th>
+                </tr>
+              </thead>
+              <tbody id="logTableBody">
+                <tr>
+                  <td><span style="font-family: var(--font-mono);">21:35:10</span></td>
+                  <td><strong>42</strong> AQI</td>
+                  <td>210 PPM</td>
+                  <td>24.5 °C</td>
+                  <td><span class="badge-status status-good">GOOD</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =====================================================================
+           PAGE 2: TECHNOLOGY & CIRCUIT SCHEMATICS
+           ===================================================================== -->
+      <section class="page-view" id="page-technology">
+        <div class="page-header">
+          <h2 class="page-title"><i class="fa-solid fa-microchip" style="color: var(--cyan-primary);"></i> Hardware Architecture &amp; Schematics</h2>
+          <p class="page-subtitle">Detailed specifications of ESP32 MCU, MQ135 gas sensor physics, and pin wiring schematics.</p>
+        </div>
+
+        <!-- Component Specifications Grid -->
+        <div class="tech-grid">
+          
+          <div class="glass-card tech-card">
+            <div class="sensor-chip">
+              <div class="sensor-icon icon-esp32"><i class="fa-solid fa-cpu"></i></div>
+              <div>
+                <h3 class="sensor-name">ESP32 DevKit V1</h3>
+                <div class="sensor-model">Microcontroller Core</div>
+              </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">
+              Low-power 32-bit LX6 dual-core processor operating at 240MHz with built-in Wi-Fi 802.11 b/g/n and Bluetooth LE.
+            </p>
+            <div class="tech-spec-list">
+              <div class="tech-spec-item"><span>Operating Voltage:</span> <strong>3.3V - 5.0V</strong></div>
+              <div class="tech-spec-item"><span>ADC Resolution:</span> <strong>12-bit (0-4095)</strong></div>
+              <div class="tech-spec-item"><span>Protocols:</span> <strong>HTTP / WebSockets</strong></div>
+            </div>
+          </div>
+
+          <div class="glass-card tech-card">
+            <div class="sensor-chip">
+              <div class="sensor-icon icon-mq135"><i class="fa-solid fa-cloud-meatball"></i></div>
+              <div>
+                <h3 class="sensor-name">MQ135 Gas Sensor</h3>
+                <div class="sensor-model">Air Pollution Sensor</div>
+              </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">
+              Uses Tin Dioxide (SnO2) semiconductor sensitive layer. Gas resistance decreases as concentration of harmful gases increases.
+            </p>
+            <div class="tech-spec-list">
+              <div class="tech-spec-item"><span>Target Gases:</span> <strong>NH3, NOx, Alcohol, Smoke, CO2</strong></div>
+              <div class="tech-spec-item"><span>Preheat Time:</span> <strong>24 Hours</strong></div>
+              <div class="tech-spec-item"><span>Detection Range:</span> <strong>10 - 1000 PPM</strong></div>
+            </div>
+          </div>
+
+          <div class="glass-card tech-card">
+            <div class="sensor-chip">
+              <div class="sensor-icon icon-dht11"><i class="fa-solid fa-temperature-arrow-up"></i></div>
+              <div>
+                <h3 class="sensor-name">DHT11 Climate Sensor</h3>
+                <div class="sensor-model">Temp &amp; Humidity Sensor</div>
+              </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">
+              Comprises a resistive-type humidity measurement component and an NTC temperature thermistor with a 1-wire digital communication bus.
+            </p>
+            <div class="tech-spec-list">
+              <div class="tech-spec-item"><span>Temp Range:</span> <strong>0 to 50 °C (±2°C)</strong></div>
+              <div class="tech-spec-item"><span>Humidity Range:</span> <strong>20 - 90% RH (±5%)</strong></div>
+              <div class="tech-spec-item"><span>Signal Pin:</span> <strong>GPIO 4</strong></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Standard 4-Tier AQI Reference Table -->
+        <div class="glass-card table-card" style="margin-bottom: 2rem;">
+          <div class="table-header">
+            <span class="card-title"><i class="fa-solid fa-table-list" style="color: var(--cyan-primary);"></i> Air Quality Index (AQI) Classification Scale</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="text-align: right; width: 140px;">AQI Range</th>
+                  <th>Air Quality</th>
+                  <th style="width: 120px;">Color</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="text-align: right; font-weight: 700; font-family: var(--font-mono); color: #10b981;">0 &ndash; 50</td>
+                  <td><span class="badge-status" style="background: rgba(16,185,129,0.15); border: 1px solid #10b981; color: #10b981;">🟢 Good</span></td>
+                  <td style="color: #10b981; font-weight: 600;">Green</td>
+                </tr>
+                <tr>
+                  <td style="text-align: right; font-weight: 700; font-family: var(--font-mono); color: #f59e0b;">51 &ndash; 100</td>
+                  <td><span class="badge-status" style="background: rgba(245,158,11,0.15); border: 1px solid #f59e0b; color: #f59e0b;">🟡 Moderate</span></td>
+                  <td style="color: #f59e0b; font-weight: 600;">Yellow</td>
+                </tr>
+                <tr>
+                  <td style="text-align: right; font-weight: 700; font-family: var(--font-mono); color: #f97316;">101 &ndash; 200</td>
+                  <td><span class="badge-status" style="background: rgba(249,115,22,0.15); border: 1px solid #f97316; color: #f97316;">🟠 Poor</span></td>
+                  <td style="color: #f97316; font-weight: 600;">Orange</td>
+                </tr>
+                <tr>
+                  <td style="text-align: right; font-weight: 700; font-family: var(--font-mono); color: #ef4444;">201 &ndash; 500</td>
+                  <td><span class="badge-status" style="background: rgba(239,68,68,0.15); border: 1px solid #ef4444; color: #ef4444;">🔴 Hazardous</span></td>
+                  <td style="color: #ef4444; font-weight: 600;">Red</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Interactive Circuit Diagram Canvas -->
+        <div class="glass-card circuit-card">
+          <div class="card-title-bar">
+            <span class="card-title"><i class="fa-solid fa-diagram-project" style="color: var(--cyan-primary);"></i> Interactive Component Wiring Schematic</span>
+            <small style="color: var(--text-muted); font-size: 0.75rem;">Vector Schematic</small>
+          </div>
+
+          <div class="circuit-canvas-wrapper" id="circuitCanvasWrapper">
+            <!-- Rendered by schematic.js -->
+          </div>
+        </div>
+
+        <!-- Embedded Code Viewer Card -->
+        <div class="glass-card code-card">
+          <div class="code-header">
+            <span class="card-title"><i class="fa-solid fa-code" style="color: var(--purple-accent);"></i> ESP32 Arduino Firmware Code (C++)</span>
+            <button class="btn-copy" id="btnCopyCode"><i class="fa-regular fa-copy"></i> Copy Code</button>
+          </div>
+
+          <div class="code-block-container">
+            <pre><code id="esp32CodeSnippet">#include &lt;Wire.h&gt;
+#include &lt;LiquidCrystal_I2C.h&gt;
+#include &lt;DHT.h&gt;
+
+//---------------- LCD ----------------//
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+//---------------- DHT11 ----------------//
+#define DHTPIN 32
+
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+//---------------- MQ135 ----------------//
+#define MQ135_PIN 34
+
+//---------------- Output Pins ----------------//
+#define BUZZER      18
+#define RED_LED     19
+#define GREEN_LED   25
+#define YELLOW_LED  26
+
+void setup()
+{
+  Serial.begin(115200);
+
+  pinMode(BUZZER, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
+  pinMode(GREEN_LED, OUTPUT);
+  pinMode(YELLOW_LED, OUTPUT);
+
+  digitalWrite(BUZZER, LOW);
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(YELLOW_LED, LOW);
+
+  dht.begin();
+  Wire.begin(21, 22);
+
+  lcd.init();
+  lcd.backlight();
+
+  // Welcome Screen
+  lcd.setCursor(5,0);
+  lcd.print("AERO");
+  lcd.setCursor(4,1);
+  lcd.print("SENSE");
+  delay(2000);
+
+  // LED Test
+  digitalWrite(BUZZER, HIGH);
+  digitalWrite(RED_LED, HIGH);
+  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(YELLOW_LED, HIGH);
+  delay(100);
+
+  digitalWrite(BUZZER, LOW);
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(YELLOW_LED, LOW);
+  delay(100);
+
+  digitalWrite(BUZZER, HIGH);
+  digitalWrite(RED_LED, HIGH);
+  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(YELLOW_LED, HIGH);
+  delay(100);
+
+  digitalWrite(BUZZER, LOW);
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(YELLOW_LED, LOW);
+  delay(100);
+
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("SMART AIR");
+  lcd.setCursor(0,1);
+  lcd.print("MONITOR SYSTEM");
+  delay(2000);
+
+  lcd.clear();
+}
+
+void loop()
+{
+  float temp = dht.readTemperature();
+  float hum = dht.readHumidity();
+  int gas = analogRead(MQ135_PIN);
+
+  if (isnan(temp) || isnan(hum))
+  {
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("DHT ERROR!");
+    delay(1000);
+    return;
+  }
+
+  // Serial Monitor
+  Serial.println("----------------------");
+  Serial.print("Temperature : ");
+  Serial.print(temp);
+  Serial.println(" C");
+
+  Serial.print("Humidity    : ");
+  Serial.print(hum);
+  Serial.println(" %");
+
+  Serial.print("Gas Value   : ");
+  Serial.println(gas);
+
+  // Normal LCD Display
+  lcd.setCursor(0,0);
+  lcd.print("T:");
+  lcd.print(temp,1);
+  lcd.print((char)223);
+  lcd.print("C ");
+
+  lcd.print("H:");
+  lcd.print(hum,0);
+  lcd.print("% ");
+
+  lcd.setCursor(0,1);
+  lcd.print("Gas:");
+  lcd.print(gas);
+  lcd.print("    ");
+
+  // Air Quality &amp; LEDs
+
+  // GOOD
+  if(gas &lt;= 800)
+  {
+    digitalWrite(GREEN_LED, HIGH);
+    digitalWrite(YELLOW_LED, LOW);
+    digitalWrite(RED_LED, LOW);
+    digitalWrite(BUZZER, LOW);
+  }
+
+  // MODERATE
+  else if(gas &lt;= 1500)
+  {
+    digitalWrite(GREEN_LED, LOW);
+    digitalWrite(YELLOW_LED, HIGH);
+    digitalWrite(RED_LED, LOW);
+    digitalWrite(BUZZER, LOW);
+  }
+
+  // POOR
+  else
+  {
+    digitalWrite(GREEN_LED, LOW);
+    digitalWrite(YELLOW_LED, LOW);
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(BUZZER, HIGH);
+
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("***WARNING***");
+    lcd.setCursor(0,1);
+    lcd.print("HIGH POLLUTION");
+    delay(1000);
+    lcd.clear();
+  }
+
+  delay(1000);
+}</code></pre>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =====================================================================
+           PAGE 3: TEAM MEMBERS (6 GROUP MEMBERS)
+           ===================================================================== -->
+      <section class="page-view" id="page-team">
+        <div class="page-header">
+          <h2 class="page-title"><i class="fa-solid fa-users" style="color: var(--cyan-primary);"></i> SLIIT Faculty of Computing Project Team</h2>
+          <p class="page-subtitle">Meet the 6 SLIIT Faculty of Computing students behind the Areosence Air Quality System.</p>
+        </div>
+
+        <div class="team-grid">
+          
+          <!-- Member 1: Team Leader -->
+          <div class="glass-card team-card">
+            <div class="team-avatar-wrapper">
+              <div class="team-avatar-initials">AW</div>
+            </div>
+            <div class="team-id-badge"><i class="fa-solid fa-id-card"></i> IT26101389</div>
+            <div class="team-role-badge"><i class="fa-solid fa-crown" style="color: #f59e0b;"></i> Team Leader &amp; Research</div>
+            <h3 class="team-name">Wickramasinghe R M A A W</h3>
+            <p class="team-contribution">Originated core project concept, led group execution, and directed environmental air research.</p>
+            <div class="team-skills">
+              <span class="skill-tag">Team Leader</span>
+              <span class="skill-tag">Original Idea</span>
+              <span class="skill-tag">Research</span>
+            </div>
+            <div class="team-socials">
+              <a href="#" class="social-btn"><i class="fa-brands fa-github"></i></a>
+              <a href="#" class="social-btn"><i class="fa-brands fa-linkedin"></i></a>
+              <a href="#" class="social-btn"><i class="fa-solid fa-envelope"></i></a>
+            </div>
+          </div>
+
+          <!-- Member 2: Testing & Validation -->
+          <div class="glass-card team-card">
+            <div class="team-avatar-wrapper">
+              <div class="team-avatar-initials">TM</div>
+            </div>
+            <div class="team-id-badge"><i class="fa-solid fa-id-card"></i> IT26101619</div>
+            <div class="team-role-badge">Testing &amp; Wokwi Simulation</div>
+            <h3 class="team-name">Methnaka R A T</h3>
+            <p class="team-contribution">Executed comprehensive system testing, validation, and circuit simulation using Wokwi.</p>
+            <div class="team-skills">
+              <span class="skill-tag">Wokwi Simulation</span>
+              <span class="skill-tag">System Testing</span>
+              <span class="skill-tag">Validation</span>
+            </div>
+            <div class="team-socials">
+              <a href="#" class="social-btn"><i class="fa-brands fa-github"></i></a>
+              <a href="#" class="social-btn"><i class="fa-brands fa-linkedin"></i></a>
+              <a href="#" class="social-btn"><i class="fa-solid fa-envelope"></i></a>
+            </div>
+          </div>
+
+          <!-- Member 3: Hardware Specialist -->
+          <div class="glass-card team-card">
+            <div class="team-avatar-wrapper">
+              <div class="team-avatar-initials">TD</div>
+            </div>
+            <div class="team-id-badge"><i class="fa-solid fa-id-card"></i> IT26101936</div>
+            <div class="team-role-badge">Hardware Selection &amp; Prep</div>
+            <h3 class="team-name">Dabare P T M</h3>
+            <p class="team-contribution">Selected, sourced, and prepared ESP32 microcontroller, sensors, LCD 16x2, and output modules.</p>
+            <div class="team-skills">
+              <span class="skill-tag">Hardware Selection</span>
+              <span class="skill-tag">Component Prep</span>
+              <span class="skill-tag">ESP32 &amp; Sensors</span>
+            </div>
+            <div class="team-socials">
+              <a href="#" class="social-btn"><i class="fa-brands fa-github"></i></a>
+              <a href="#" class="social-btn"><i class="fa-brands fa-linkedin"></i></a>
+              <a href="#" class="social-btn"><i class="fa-solid fa-envelope"></i></a>
+            </div>
+          </div>
+
+          <!-- Member 4: Arduino Coding -->
+          <div class="glass-card team-card">
+            <div class="team-avatar-wrapper">
+              <div class="team-avatar-initials">IN</div>
+            </div>
+            <div class="team-id-badge"><i class="fa-solid fa-id-card"></i> IT26101398</div>
+            <div class="team-role-badge">Arduino Coding</div>
+            <h3 class="team-name">Nadeeja M K I</h3>
+            <p class="team-contribution">Developed C++ firmware code, sensor analog/digital reading loops, LCD driver, and alarm logic.</p>
+            <div class="team-skills">
+              <span class="skill-tag">Arduino C++</span>
+              <span class="skill-tag">Firmware Coding</span>
+              <span class="skill-tag">Sensor Drivers</span>
+            </div>
+            <div class="team-socials">
+              <a href="#" class="social-btn"><i class="fa-brands fa-github"></i></a>
+              <a href="#" class="social-btn"><i class="fa-brands fa-linkedin"></i></a>
+              <a href="#" class="social-btn"><i class="fa-solid fa-envelope"></i></a>
+            </div>
+          </div>
+
+          <!-- Member 5: Website Developer -->
+          <div class="glass-card team-card">
+            <div class="team-avatar-wrapper">
+              <div class="team-avatar-initials">TS</div>
+            </div>
+            <div class="team-id-badge"><i class="fa-solid fa-id-card"></i> IT26101807</div>
+            <div class="team-role-badge">Website Developer</div>
+            <h3 class="team-name">Thushanth S</h3>
+            <p class="team-contribution">Built real-time web portal, animated AQI gauge meter, streaming chart, and glassmorphic UI.</p>
+            <div class="team-skills">
+              <span class="skill-tag">Website Developer</span>
+              <span class="skill-tag">UI/UX Design</span>
+              <span class="skill-tag">Real-Time Data</span>
+            </div>
+            <div class="team-socials">
+              <a href="#" class="social-btn"><i class="fa-brands fa-github"></i></a>
+              <a href="#" class="social-btn"><i class="fa-brands fa-linkedin"></i></a>
+              <a href="#" class="social-btn"><i class="fa-solid fa-envelope"></i></a>
+            </div>
+          </div>
+
+          <!-- Member 6: Proposal & Documentation -->
+          <div class="glass-card team-card">
+            <div class="team-avatar-wrapper">
+              <div class="team-avatar-initials">YL</div>
+            </div>
+            <div class="team-id-badge"><i class="fa-solid fa-id-card"></i> IT26102019</div>
+            <div class="team-role-badge">Proposal &amp; Documentation</div>
+            <h3 class="team-name">Lakduli U Y</h3>
+            <p class="team-contribution">Prepared project proposal, technical specifications, SDG alignment framework, and documentation.</p>
+            <div class="team-skills">
+              <span class="skill-tag">Proposal Prep</span>
+              <span class="skill-tag">Documentation</span>
+              <span class="skill-tag">Technical Docs</span>
+            </div>
+            <div class="team-socials">
+              <a href="#" class="social-btn"><i class="fa-brands fa-github"></i></a>
+              <a href="#" class="social-btn"><i class="fa-brands fa-linkedin"></i></a>
+              <a href="#" class="social-btn"><i class="fa-solid fa-envelope"></i></a>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           PAGE 4: CONTACT & LOCATION
+           ===================================================================== -->
+      <section class="page-view" id="page-contact">
+        <div class="page-header">
+          <h2 class="page-title"><i class="fa-solid fa-envelope" style="color: var(--cyan-primary);"></i> Faculty Contact &amp; Inquiry</h2>
+          <p class="page-subtitle">Get in touch with our project team at SLIIT Faculty of Computing.</p>
+        </div>
+
+        <div class="contact-layout">
+          
+          <!-- Contact Info -->
+          <div class="glass-card contact-info-card">
+            <h3 style="font-family: var(--font-heading); font-size: 1.3rem; margin-bottom: 0.5rem;">Faculty of Computing Info</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+              SLIIT Faculty of Computing, IoT &amp; Embedded Systems Computing Facility.
+            </p>
+
+            <div class="info-item">
+              <div class="info-icon"><i class="fa-solid fa-location-dot"></i></div>
+              <div class="info-details">
+                <h4>Campus Location</h4>
+                <p>SLIIT Malabe Campus, New Kandy Rd, Malabe 10115</p>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="info-icon"><i class="fa-solid fa-paper-plane"></i></div>
+              <div class="info-details">
+                <h4>Project Email</h4>
+                <p>areosence.project@sliit.lk</p>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="info-icon"><i class="fa-solid fa-clock"></i></div>
+              <div class="info-details">
+                <h4>Lab Office Hours</h4>
+                <p>Monday - Friday: 09:00 AM - 05:00 PM</p>
+              </div>
+            </div>
+
+            <div class="map-wrapper" style="margin-top: 1.25rem; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-glass);">
+              <iframe src="https://maps.google.com/maps?q=SLIIT%20Malabe%20Campus%20New%20Kandy%20Rd%20Malabe%2010115&t=&z=15&ie=UTF8&iwloc=&output=embed" width="100%" height="220" style="border:0; display: block;" allowfullscreen="" loading="lazy" title="SLIIT Malabe Campus Map"></iframe>
+            </div>
+          </div>
+
+          <!-- Interactive Contact Form -->
+          <div class="glass-card">
+            <h3 style="font-family: var(--font-heading); font-size: 1.3rem; margin-bottom: 1.25rem;">Send an Inquiry</h3>
+            
+            <form id="contactForm" style="display: flex; flex-direction: column; gap: 1rem;">
+              <div class="form-group">
+                <label for="contactName">Full Name</label>
+                <input type="text" id="contactName" class="input-field" placeholder="Dr. Robert Vance" required style="padding-left: 1rem;">
+              </div>
+
+              <div class="form-group">
+                <label for="contactEmail">Email Address</label>
+                <input type="email" id="contactEmail" class="input-field" placeholder="name@domain.com" required style="padding-left: 1rem;">
+              </div>
+
+              <div class="form-group">
+                <label for="contactRole">Your Role / Affiliation</label>
+                <select id="contactRole" class="input-field" style="padding-left: 1rem;">
+                  <option>University Student</option>
+                  <option>Faculty / Evaluator</option>
+                  <option>Industry Researcher</option>
+                  <option>Guest Visitor</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="contactMsg">Message / Inquiry Details</label>
+                <textarea id="contactMsg" class="input-field" rows="4" placeholder="Type your message regarding the ESP32 air pollution system..." required style="padding-left: 1rem; resize: vertical;"></textarea>
+              </div>
+
+              <button type="submit" class="btn-primary">
+                <i class="fa-solid fa-paper-plane"></i> Submit Message
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           PAGE 5: ABOUT PROJECT & SDGS
+           ===================================================================== -->
+      <section class="page-view" id="page-about">
+        <div class="page-header">
+          <h2 class="page-title"><i class="fa-solid fa-circle-info" style="color: var(--cyan-primary);"></i> Project Mission &amp; Methodology</h2>
+          <p class="page-subtitle">Background research on air quality monitoring, target SDGs, and smart IoT architecture.</p>
+        </div>
+
+        <div class="about-grid">
+          
+          <div class="glass-card about-article">
+            <h3 style="font-family: var(--font-heading); font-size: 1.4rem; color: #fff; margin-bottom: 1rem;">
+              Why Smart Air Quality Detection Matters
+            </h3>
+            <p>
+              Air pollution is one of the leading environmental health risks worldwide. Harmful airborne pollutants such as Carbon Dioxide (CO2), Ammonia (NH3), Nitrous Oxides (NOx), and particulate smoke often accumulate silently in indoor classrooms, laboratories, and urban environments.
+            </p>
+            <p>
+              Our project combines low-cost high-precision sensors—the <strong>MQ135 Gas Sensor</strong> for chemical gas concentrations and the <strong>DHT11 Sensor</strong> for ambient thermal conditions—with an <strong>ESP32 Microcontroller</strong> to continuously transmit real-time air quality metrics to a centralized monitoring hub.
+            </p>
+
+            <!-- System Key Features Section -->
+            <h4 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--cyan-primary); margin-top: 1.5rem; margin-bottom: 0.5rem;">
+              <i class="fa-solid fa-star" style="color: #f59e0b;"></i> Key Features
+            </h4>
+            <p style="font-size: 0.88rem;">Core functional capabilities of the Areosence monitoring system:</p>
+
+            <div class="key-features-grid">
+              <div class="feature-bullet-item">
+                <div class="feature-bullet-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                <div class="feature-bullet-text">Responsive and user-friendly interface accessible from desktops, tablets, and smartphones.</div>
+              </div>
+
+              <div class="feature-bullet-item">
+                <div class="feature-bullet-icon"><i class="fa-solid fa-temperature-high"></i></div>
+                <div class="feature-bullet-text">Displays real-time ambient temperature telemetry readings (°C).</div>
+              </div>
+
+              <div class="feature-bullet-item">
+                <div class="feature-bullet-icon"><i class="fa-solid fa-droplet"></i></div>
+                <div class="feature-bullet-text">Displays humidity measurements (% RH) for ambient climate assessment.</div>
+              </div>
+
+              <div class="feature-bullet-item">
+                <div class="feature-bullet-icon"><i class="fa-solid fa-smog"></i></div>
+                <div class="feature-bullet-text">Displays MQ135 gas sensor values (PPM) for harmful air contaminants.</div>
+              </div>
+
+              <div class="feature-bullet-item">
+                <div class="feature-bullet-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="feature-bullet-text">Indicates air quality status into Good (&le;800), Moderate (801-1500), or Poor (&gt;1500).</div>
+              </div>
+
+              <div class="feature-bullet-item">
+                <div class="feature-bullet-icon"><i class="fa-solid fa-circle-info"></i></div>
+                <div class="feature-bullet-text">Provides a comprehensive overview of the Areosence system and its end-to-end functionality.</div>
+              </div>
+            </div>
+
+            <!-- UN Sustainable Development Goals -->
+            <h4 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--cyan-primary); margin-top: 1.75rem; margin-bottom: 0.5rem;">
+              UN Sustainable Development Goals (SDGs)
+            </h4>
+            <p style="font-size: 0.88rem;">Our project directly contributes to the United Nations Sustainable Development Framework:</p>
+
+            <div class="sdg-cards-grid">
+              <div class="sdg-card">
+                <div class="sdg-num">SDG 3</div>
+                <div class="sdg-title">Good Health &amp; Well-being</div>
+                <div class="sdg-desc">Prevents respiratory illnesses by providing automated warnings when air toxicity reaches poor or hazardous levels.</div>
+              </div>
+              <div class="sdg-card">
+                <div class="sdg-num">SDG 11</div>
+                <div class="sdg-title">Sustainable Cities</div>
+                <div class="sdg-desc">Provides actionable environmental data for smart university campuses and eco-friendly urban infrastructure.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Architecture 4-Layer Pipeline Card -->
+          <div class="glass-card" style="display: flex; flex-direction: column; gap: 1rem;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.15rem; color: var(--cyan-primary);">
+              <i class="fa-solid fa-layer-group"></i> 4-Layer System Architecture
+            </h3>
+            <p style="font-size: 0.825rem; color: var(--text-secondary);">End-to-end telemetry processing pipeline:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+              <div class="arch-layer-card layer-input">
+                <div class="arch-layer-num">Layer 1</div>
+                <div class="arch-layer-title">Input Layer</div>
+                <div class="arch-layer-desc">Consists of the MQ135 sensor for detecting air contaminants and gas concentrations, paired with the DHT11 sensor to monitor ambient temperature and relative humidity levels.</div>
+              </div>
+
+              <div class="arch-layer-card layer-process">
+                <div class="arch-layer-num">Layer 2</div>
+                <div class="arch-layer-title">Processing Layer</div>
+                <div class="arch-layer-desc">The ESP32 microcontroller processes raw sensor telemetry, applies calibration algorithms to calculate environmental metrics, and evaluates threshold values to classify air quality status into Good, Moderate, or Poor.</div>
+              </div>
+
+              <div class="arch-layer-card layer-comm">
+                <div class="arch-layer-num">Layer 3</div>
+                <div class="arch-layer-title">Communication Layer</div>
+                <div class="arch-layer-desc">Utilizes the ESP32’s integrated Wi-Fi module to securely transmit real-time sensor readings over the network to the central web platform.</div>
+              </div>
+
+              <div class="arch-layer-card layer-output">
+                <div class="arch-layer-num">Layer 4</div>
+                <div class="arch-layer-title">Output / Presentation Layer</div>
+                <div class="arch-layer-desc">Features the dedicated Areosence web platform, which receives the data stream, visualizes live temperature, humidity, and air quality metrics, and displays intuitive, color-coded health status indicators for end users.</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 0.5rem; padding-top: 1rem; border-top: 1px dashed var(--border-glass);">
+              <h4 style="font-size: 0.9rem; margin-bottom: 0.4rem;">Future Scope</h4>
+              <ul style="font-size: 0.825rem; color: var(--text-secondary); padding-left: 1.2rem;">
+                <li>Machine Learning air trend forecasting</li>
+                <li>LoRaWAN long-range sensor mesh network</li>
+                <li>Mobile push notification alerts</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <div>© 2026 Areosence IoT Project | SLIIT Faculty of Computing | Breathe Smart. Live Better.</div>
+      <div style="font-size: 0.75rem; margin-top: 0.25rem; color: var(--text-muted);">
+        Powered by ESP32 Microcontroller • MQ135 Gas Sensor • DHT11 Climate Sensor • LCD 16x2
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Contact Form Feedback Confirmation Modal -->
+  <div class="modal-confirm-overlay" id="contactConfirmModal">
+    <div class="modal-confirm-card">
+      <i class="fa-solid fa-circle-check" style="font-size: 3rem; color: var(--color-good); margin-bottom: 1rem;"></i>
+      <h3 style="font-family: var(--font-heading); color: #fff; margin-bottom: 0.5rem;">Message Received!</h3>
+      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+        Thank you for reaching out to the Areosence team. Your message has been routed to our project lead.
+      </p>
+      <button class="btn-primary" id="btnCloseContactModal">Close Window</button>
+    </div>
+  </div>
+
+  <!-- Application Custom Scripts -->
+  <script src="js/gauge.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/schematic.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
